@@ -144,7 +144,7 @@ class XMLChangeLogSAXHandler extends DefaultHandler {
 			} else if ("includeAll".equals(qName)) {
 				String pathName = atts.getValue("path");
 				pathName = pathName.replace('\\', '/');
-				
+
 				if (!(pathName.endsWith("/"))) {
 					pathName = pathName + '/';
 				}
