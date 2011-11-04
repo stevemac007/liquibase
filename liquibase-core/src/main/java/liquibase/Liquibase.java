@@ -124,7 +124,8 @@ public class Liquibase {
         return new ChangeLogIterator(changeLog,
                 new ShouldRunChangeSetFilter(database),
                 new ContextChangeSetFilter(contexts),
-                new DbmsChangeSetFilter(database));
+                new DbmsChangeSetFilter(database),
+                new StateConditionalChangeSetFilter(database));
     }
 
     public void update(String contexts, Writer output) throws LiquibaseException {

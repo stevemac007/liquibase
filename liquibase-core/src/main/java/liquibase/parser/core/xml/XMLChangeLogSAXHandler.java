@@ -42,6 +42,7 @@ import liquibase.precondition.CustomPreconditionWrapper;
 import liquibase.precondition.Precondition;
 import liquibase.precondition.PreconditionFactory;
 import liquibase.precondition.PreconditionLogic;
+import liquibase.precondition.StateConditional;
 import liquibase.precondition.core.PreconditionContainer;
 import liquibase.precondition.core.SqlPrecondition;
 import liquibase.resource.ResourceAccessor;
@@ -80,6 +81,8 @@ class XMLChangeLogSAXHandler extends DefaultHandler {
 	private Set<String> modifySqlContexts;
 	private boolean modifySqlAppliedOnRollback = false;
 
+    private StateConditional conditionalInclude;
+
 	protected XMLChangeLogSAXHandler(String physicalChangeLogLocation,
 			ResourceAccessor resourceAccessor,
 			ChangeLogParameters changeLogParameters) {
@@ -101,11 +104,17 @@ class XMLChangeLogSAXHandler extends DefaultHandler {
 	public void startElement(String uri, String localName, String qName,
 			Attributes baseAttributes) throws SAXException {
 		Attributes atts = new ExpandingAttributes(baseAttributes);
+		
+		if (localName == null || localName.isEmpty()) {
+		    localName = qName;
+		}
 		try {
 			if ("comment".equals(qName)) {
 				text = new StringBuffer();
 			} else if ("validCheckSum".equals(qName)) {
 				text = new StringBuffer();
+            } else if ("conditionalInclude".equals(qName)) {
+                conditionalInclude = new StateConditional();
 			} else if ("databaseChangeLog".equals(qName)) {
 				String schemaLocation = atts.getValue("xsi:schemaLocation");
 				if (schemaLocation != null) {
@@ -130,7 +139,7 @@ class XMLChangeLogSAXHandler extends DefaultHandler {
 				fileName = fileName.replace('\\', '/');
 				boolean isRelativeToChangelogFile = Boolean.parseBoolean(atts
 						.getValue("relativeToChangelogFile"));
-				handleIncludedChangeLog(fileName, isRelativeToChangelogFile,
+				handleIncludedChangeLog(conditionalInclude, fileName, isRelativeToChangelogFile,
 						databaseChangeLog.getPhysicalFilePath());
 			} else if ("includeAll".equals(qName)) {
 				String pathName = atts.getValue("path");
@@ -199,7 +208,7 @@ class XMLChangeLogSAXHandler extends DefaultHandler {
                                 continue;
                             }
 
-                            if (handleIncludedChangeLog(path, false, databaseChangeLog.getPhysicalFilePath())) {
+                            if (handleIncludedChangeLog(conditionalInclude, path, false, databaseChangeLog.getPhysicalFilePath())) {
 								foundResource = true;
 							}
 						}
@@ -209,7 +218,7 @@ class XMLChangeLogSAXHandler extends DefaultHandler {
                             log.debug("already included "+path);
                             continue;
                         }
-                        if (handleIncludedChangeLog(path, false, databaseChangeLog.getPhysicalFilePath())) {
+                        if (handleIncludedChangeLog(conditionalInclude, path, false, databaseChangeLog.getPhysicalFilePath())) {
 							foundResource = true;
 						}
 					}
@@ -467,7 +476,7 @@ class XMLChangeLogSAXHandler extends DefaultHandler {
 		}
 	}
 
-	protected boolean handleIncludedChangeLog(String fileName,
+	protected boolean handleIncludedChangeLog(StateConditional conditional, String fileName,
 			boolean isRelativePath, String relativeBaseFileName)
 			throws LiquibaseException {
 		if (!(fileName.endsWith(".xml") || fileName.endsWith(".sql"))) {
@@ -501,6 +510,7 @@ class XMLChangeLogSAXHandler extends DefaultHandler {
 		}
 		for (ChangeSet changeSet : changeLog.getChangeSets()) {
 			handleChangeSet(changeSet);
+			changeSet.setStateConditional(conditional);
 		}
 
 		return true;
@@ -531,13 +541,22 @@ class XMLChangeLogSAXHandler extends DefaultHandler {
 			textString = changeLogParameters.expandExpressions(StringUtils
 					.trimToNull(text.toString()));
 		}
+		
+		if (localName == null || localName.isEmpty()) {
+		    localName = qName;
+		}
 
 		try {
 			if (changeSubObjects.size() > 0) {
 				changeSubObjects.pop();
+            } else if ("conditionalInclude".equals(qName)) {
+                conditionalInclude = null;
 			} else if (rootPrecondition != null) {
 				if ("preConditions".equals(qName)) {
-					if (changeSet == null) {
+				    if (conditionalInclude != null) {
+				        conditionalInclude.setPreconditions(rootPrecondition);
+				    }
+				    else if (changeSet == null) {
 						databaseChangeLog.setPreconditions(rootPrecondition);
 						handlePreCondition(rootPrecondition);
 					} else {
@@ -613,7 +632,7 @@ class XMLChangeLogSAXHandler extends DefaultHandler {
 					&& localName.equals(change.getChangeMetaData().getName())) {
 				if (textString != null) {
 					if (change instanceof RawSQLChange) {
-						((RawSQLChange) change).setSql(textString);
+						((RawSQLChange) change).setSql(changeLogParameters.expandExpressions(textString));
 					} else if (change instanceof CreateProcedureChange) {
 						((CreateProcedureChange) change)
 								.setProcedureBody(textString);

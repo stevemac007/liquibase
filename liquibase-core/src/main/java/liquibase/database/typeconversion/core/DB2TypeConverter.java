@@ -10,6 +10,7 @@ import liquibase.database.structure.type.DateTimeType;
 import liquibase.database.structure.type.NumberType;
 import liquibase.database.structure.type.TinyIntType;
 import liquibase.exception.UnexpectedLiquibaseException;
+import liquibase.database.structure.type.NumberType;
 
 import java.text.ParseException;
 import java.sql.Types;
