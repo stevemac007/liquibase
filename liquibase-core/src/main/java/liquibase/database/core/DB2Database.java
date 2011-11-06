@@ -19,8 +19,10 @@ public class DB2Database extends AbstractDatabase {
     
     public boolean supportsColumnRename() {
         try {
-            major = getConnection().getDatabaseMajorVersion();
-            minor = getConnection().getDatabaseMinorVersion();
+            if (getConnection() != null) {
+                major = getConnection().getDatabaseMajorVersion();
+                minor = getConnection().getDatabaseMinorVersion();
+            }
         } catch (DatabaseException e) {
             e.printStackTrace();
         }
