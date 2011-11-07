@@ -139,7 +139,7 @@ class XMLChangeLogSAXHandler extends DefaultHandler {
 				fileName = fileName.replace('\\', '/');
 				boolean isRelativeToChangelogFile = Boolean.parseBoolean(atts
 						.getValue("relativeToChangelogFile"));
-				handleIncludedChangeLog(conditionalInclude, fileName, isRelativeToChangelogFile,
+				handleIncludedChangeLog(fileName, isRelativeToChangelogFile,
 						databaseChangeLog.getPhysicalFilePath());
 			} else if ("includeAll".equals(qName)) {
 				String pathName = atts.getValue("path");
@@ -208,7 +208,7 @@ class XMLChangeLogSAXHandler extends DefaultHandler {
                                 continue;
                             }
 
-                            if (handleIncludedChangeLog(conditionalInclude, path, false, databaseChangeLog.getPhysicalFilePath())) {
+                            if (handleIncludedChangeLog(path, false, databaseChangeLog.getPhysicalFilePath())) {
 								foundResource = true;
 							}
 						}
@@ -218,7 +218,7 @@ class XMLChangeLogSAXHandler extends DefaultHandler {
                             log.debug("already included "+path);
                             continue;
                         }
-                        if (handleIncludedChangeLog(conditionalInclude, path, false, databaseChangeLog.getPhysicalFilePath())) {
+                        if (handleIncludedChangeLog(path, false, databaseChangeLog.getPhysicalFilePath())) {
 							foundResource = true;
 						}
 					}
@@ -476,7 +476,7 @@ class XMLChangeLogSAXHandler extends DefaultHandler {
 		}
 	}
 
-	protected boolean handleIncludedChangeLog(StateConditional conditional, String fileName,
+	protected boolean handleIncludedChangeLog(String fileName,
 			boolean isRelativePath, String relativeBaseFileName)
 			throws LiquibaseException {
 		if (!(fileName.endsWith(".xml") || fileName.endsWith(".sql"))) {
@@ -510,7 +510,7 @@ class XMLChangeLogSAXHandler extends DefaultHandler {
 		}
 		for (ChangeSet changeSet : changeLog.getChangeSets()) {
 			handleChangeSet(changeSet);
-			changeSet.setStateConditional(conditional);
+			changeSet.setStateConditional(conditionalInclude);
 		}
 
 		return true;

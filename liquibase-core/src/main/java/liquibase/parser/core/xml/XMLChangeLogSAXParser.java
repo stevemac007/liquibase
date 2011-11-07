@@ -29,13 +29,13 @@ public class XMLChangeLogSAXParser implements ChangeLogParser {
     public XMLChangeLogSAXParser() {
         saxParserFactory = SAXParserFactory.newInstance();
 
-//        if (System.getProperty("java.vm.version").startsWith("1.4")) {
+        if (System.getProperty("java.vm.version").startsWith("1.4")) {
             saxParserFactory.setValidating(false);
             saxParserFactory.setNamespaceAware(false);
-//        } else {
-//            saxParserFactory.setValidating(true);
-//            saxParserFactory.setNamespaceAware(true);
-//        }
+        } else {
+            saxParserFactory.setValidating(true);
+            saxParserFactory.setNamespaceAware(true);
+        }
     }
 
     public int getPriority() {
